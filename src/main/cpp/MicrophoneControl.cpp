@@ -25,38 +25,58 @@ public:
    
 
     void tryTomuteMicrophone(bool mute) {
-        IMMDevice* defaultDevice = nullptr;
-        IAudioEndpointVolume* endpointVolume = nullptr;
-        HRESULT hr = deviceEnumerator->GetDefaultAudioEndpoint(eCapture, eCommunications, &defaultDevice);
+        IMMDeviceCollection* deviceCollection = nullptr;
+        HRESULT hr = deviceEnumerator->EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE, &deviceCollection);
         if (FAILED(hr)) {
-            std::cerr << "Failed to get default audio endpoint, HRESULT: " << hr << std::endl;
+            std::cerr << "Failed to enumerate audio endpoints, HRESULT: " << hr << std::endl;
             return;
         }
 
-        if (defaultDevice) {
-            hr = defaultDevice->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&endpointVolume));
+        UINT deviceCount;
+        hr = deviceCollection->GetCount(&deviceCount);
+        if (FAILED(hr)) {
+            std::cerr << "Failed to get device count, HRESULT: " << hr << std::endl;
+            deviceCollection->Release();
+            return;
+        }
+
+        for (UINT i = 0; i < deviceCount; ++i) {
+            IMMDevice* device = nullptr;
+            hr = deviceCollection->Item(i, &device);
             if (FAILED(hr)) {
-                std::cerr << "Failed to activate endpoint volume, HRESULT: " << hr << std::endl;
-                defaultDevice->Release();
-                return;
+                std::cerr << "Failed to get device, HRESULT: " << hr << std::endl;
+                continue;
             }
 
-            if (endpointVolume) {
-                hr = endpointVolume->SetMute(mute, NULL);
-                if (FAILED(hr)) {
-                    std::cerr << "Failed to set mute, HRESULT: " << hr << std::endl;
-                } else {
-                    std::cout << "Mute set to " << (mute ? "ON" : "OFF") << std::endl;
-                }
-                endpointVolume->Release();
-            }
-            defaultDevice->Release();
+            muteMicrophone(device, mute);
+            device->Release();
         }
+
+        deviceCollection->Release();
     }
 
 
 private:
     IMMDeviceEnumerator* deviceEnumerator;
+
+
+    void muteMicrophone(IMMDevice* device, bool mute) {
+        IAudioEndpointVolume* endpointVolume = nullptr;
+        HRESULT hr = device->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&endpointVolume));
+        if (FAILED(hr)) {
+            std::cerr << "Failed to activate endpoint volume, HRESULT: " << hr << std::endl;
+            return;
+        }
+
+        hr = endpointVolume->SetMute(mute, NULL);
+        if (FAILED(hr)) {
+            std::cerr << "Failed to set mute, HRESULT: " << hr << std::endl;
+        } else {
+            std::cout << "Mute set to " << (mute ? "MUTED" : "UN-MUTED") << std::endl;
+        }
+
+        endpointVolume->Release();
+    }
 };
 
 extern "C"

@@ -1,8 +1,8 @@
 @echo off
 REM Define the path to GCC and JDK
 set GCC_PATH=C:\msys64\ucrt64\bin\gcc.exe
-set JDK_PATH=C:\Program Files\Eclipse Adoptium\jdk-17.0.7.7-hotspot
-
+rem set JDK_PATH=C:\Program Files\Eclipse Adoptium\jdk-17.0.7.7-hotspot
+set JDK_PATH=C:\Program Files\Java\jdk-17.0.7+7
 REM Get the current working directory as the workspace folder
 set WORKSPACE_FOLDER=%CD%
 
