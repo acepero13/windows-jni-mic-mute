@@ -16,6 +16,7 @@ public class WindowsMicrophoneControl {
         }
     }
 
+
     private static Path copyResourceToTemp() throws IOException {
         Path tempFile = Files.createTempDirectory("muter").resolve("MicrophoneControl.dll");
         // Obtain resource as InputStream
@@ -31,8 +32,16 @@ public class WindowsMicrophoneControl {
             return tempFile;
         }
     }
+    private static WindowsMicrophoneControl instance = new WindowsMicrophoneControl();
+
+    public static WindowsMicrophoneControl getInstance() {
+        return instance;
+    }
+
+    private WindowsMicrophoneControl(){}
 
     native void muteMicrophone(boolean mute);
+    private native void cleanup(); // Native method to uninitialize COM
 
     public void mute() {
         muteMicrophone(true);
@@ -40,6 +49,10 @@ public class WindowsMicrophoneControl {
 
     public void unMute() {
         muteMicrophone(false);
+    }
+
+    public void cleanupCOM() {
+        cleanup();
     }
 
 

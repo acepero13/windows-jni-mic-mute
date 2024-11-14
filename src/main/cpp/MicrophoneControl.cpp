@@ -19,10 +19,10 @@ public:
     ~MicrophoneControl() {
         if (deviceEnumerator)
             deviceEnumerator->Release(); // Release the device enumerator
-        CoUninitialize(); // Uninitialize COM library
+        //CoUninitialize(); // Uninitialize COM library. This seemed to cause a race condition
     }
 
-   
+
 
     void tryTomuteMicrophone(bool mute) {
         IMMDeviceCollection* deviceCollection = nullptr;
@@ -68,11 +68,26 @@ private:
             return;
         }
 
+        BOOL currentMute = FALSE;
+        hr = endpointVolume->GetMute(&currentMute);
+        if (FAILED(hr)) {
+            std::cerr << "Failed to get current mute state, HRESULT: 0x" << std::hex << hr << std::endl;
+        } else {
+            std::cout << "Before SetMute, current mute state: " << (currentMute ? "MUTED" : "UNMUTED") << std::endl;
+        }
+
         hr = endpointVolume->SetMute(mute, NULL);
         if (FAILED(hr)) {
             std::cerr << "Failed to set mute, HRESULT: " << hr << std::endl;
         } else {
             std::cout << "Mute set to " << (mute ? "MUTED" : "UN-MUTED") << std::endl;
+        }
+
+        hr = endpointVolume->GetMute(&currentMute);
+        if (FAILED(hr)) {
+            std::cerr << "Failed to get new mute state, HRESULT: 0x" << std::hex << hr << std::endl;
+        } else {
+            std::cout << "After SetMute, new mute state: " << (currentMute ? "MUTED" : "UNMUTED") << std::endl;
         }
 
         endpointVolume->Release();
@@ -83,5 +98,10 @@ extern "C"
 JNIEXPORT void JNICALL Java_com_acepero13_research_audio_windows_WindowsMicrophoneControl_muteMicrophone(JNIEnv *env, jobject obj, jboolean mute) {
     MicrophoneControl micController;
     micController.tryTomuteMicrophone(mute);
+}
+
+extern "C"
+JNIEXPORT void JNICALL Java_com_acepero13_research_audio_windows_WindowsMicrophoneControl_cleanup(JNIEnv *env, jobject obj) {
+    CoUninitialize(); // Uninitialize COM library
 }
 
